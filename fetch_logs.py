@@ -111,6 +111,8 @@ def _fetch_log_worker(task_queue):
 
 def _fetch_logs(log_list):
     log_count = len(log_list)
+    st.write("")
+    st.write("")
     progress_bar = st.progress(0)
 
     log_buffer = [pd.DataFrame()] * log_count
