@@ -10,7 +10,7 @@ import streamlit as st
 from requests.adapters import HTTPAdapter, Retry
 from streamlit.runtime.scriptrunner import add_script_run_ctx
 
-from process_logs import (BOON_KEYS, RENAME_KEYS, FightInvalidException,
+from process_logs import (BOON_KEYS, RENAMED_KEYS, FightInvalidException,
                           filter_log_data, transform_log)
 
 WORKER_COUNT = 4
@@ -38,27 +38,74 @@ _HIDDEN_KEYS = [
     "spec_color",
     "account",
 ]
-# These are keys that someone might be intetested in
-# but which just clutter the application most of the time.
-_MISC_KEYS = [
-    RENAME_KEYS["distToCom"],
-    RENAME_KEYS["skillCastUptimeNoAA"],  # --> 'skillCastUptime' should be enough
-    RENAME_KEYS["swapCount"],
-    RENAME_KEYS["powerDps"],  # --> 'dps' should be enough
-    RENAME_KEYS["condiDps"],  # --> 'dps' should be enough
-    RENAME_KEYS["criticalDmg"],
-    RENAME_KEYS["criticalRate"],
-    RENAME_KEYS["glanceRate"],
-    RENAME_KEYS["flankingRate"],  # --> very niche
-    RENAME_KEYS["totalDamageCount"],  # --> 'dps' should be enough
-    RENAME_KEYS["missed"],
-    RENAME_KEYS["condiCleanseSelf"],  # --> not interesting in group fights
-    RENAME_KEYS["resurrectTime"],  # --> unclear what it means
-    RENAME_KEYS["resurrects"],  # --> unclear what it means
-    RENAME_KEYS["evaded"],
-    RENAME_KEYS["invulned"],
-    RENAME_KEYS["blocked"],
-]
+
+_KEY_CATEGORIES = {
+    "Default": [
+        RENAMED_KEYS["dps"],
+        RENAMED_KEYS["downContribution"],
+        RENAMED_KEYS["healing"],
+        RENAMED_KEYS["barrier"],
+        RENAMED_KEYS["boonStrips"],
+        RENAMED_KEYS["boonStripDownContribution"],
+        RENAMED_KEYS["appliedCrowdControl"],
+        RENAMED_KEYS["appliedCrowdControlDownContribution"],
+        RENAMED_KEYS["condiCleanse"],
+        RENAMED_KEYS["avgActiveBoons"],
+        RENAMED_KEYS["avgActiveConditions"],
+        RENAMED_KEYS["distToCom"],
+        RENAMED_KEYS["swapCount"],
+        RENAMED_KEYS["skillCastUptime"],
+        RENAMED_KEYS["percentageAlive"],
+    ],
+    "Offense": [
+        RENAMED_KEYS["dps"],
+        RENAMED_KEYS["downContribution"],
+        RENAMED_KEYS["condiDps"],
+        RENAMED_KEYS["powerDps"],
+        RENAMED_KEYS["criticalDmg"],
+        RENAMED_KEYS["boonStrips"],
+        RENAMED_KEYS["boonStripDownContribution"],
+        RENAMED_KEYS["killed"],
+        RENAMED_KEYS["downed"],
+        RENAMED_KEYS["interrupts"],
+        RENAMED_KEYS["appliedCrowdControl"],
+        RENAMED_KEYS["appliedCrowdControlDownContribution"],
+        RENAMED_KEYS["appliedCrowdControlDuration"],
+        RENAMED_KEYS["appliedCrowdControlDurationDownContribution"],
+        RENAMED_KEYS["missed"],
+        RENAMED_KEYS["criticalRate"],
+        RENAMED_KEYS["glanceRate"],
+        RENAMED_KEYS["flankingRate"],
+    ],
+    "Defense": [
+        RENAMED_KEYS["healing"],
+        RENAMED_KEYS["barrier"],
+        RENAMED_KEYS["downedHealing"],
+        RENAMED_KEYS["resurrects"],
+        RENAMED_KEYS["resurrectTime"],
+        RENAMED_KEYS["condiCleanse"],
+        RENAMED_KEYS["condiCleanseSelf"],
+        RENAMED_KEYS["stunBreak"],
+        RENAMED_KEYS["removedStunDuration"],
+        RENAMED_KEYS["evaded"],
+        RENAMED_KEYS["blocked"],
+        RENAMED_KEYS["invulned"],
+    ],
+    # These are keys that someone might be intetested in
+    # but which just clutter the application most of the time.
+    "Miscellaneous": [
+        RENAMED_KEYS["distToCom"],
+        RENAMED_KEYS["skillCastUptime"],
+        RENAMED_KEYS["skillCastUptimeNoAA"],  # --> 'skillCastUptime' should be enough
+        RENAMED_KEYS["swapCount"],
+        RENAMED_KEYS["totalDamageCount"],  # --> 'dps' should be enough
+        RENAMED_KEYS["removedStunDuration"],
+        # RENAMED_KEYS["boonStripDownContributionTime"],
+        RENAMED_KEYS["appliedCrowdControlDuration"],
+        RENAMED_KEYS["appliedCrowdControlDurationDownContribution"],
+    ],
+    "Unlabeled": [],
+}
 
 
 @st.cache_data(max_entries=500, show_spinner=False)
@@ -158,20 +205,31 @@ def fetch_data(userToken: str, stat_category: str):
     df = _fetch_logs(log_list)
 
     # create inputs
-    default_keys = [
+    unlabeled_keys = [
         key
         for key in list(df)
-        if key not in _HIDDEN_KEYS and key not in BOON_KEYS and key not in _MISC_KEYS
+        if key not in _HIDDEN_KEYS
+        and key not in _KEY_CATEGORIES["Default"]
+        and key not in _KEY_CATEGORIES["Offense"]
+        and key not in _KEY_CATEGORIES["Defense"]
+        and key not in BOON_KEYS
+        and key not in _KEY_CATEGORIES["Miscellaneous"]
     ]
 
     result_keys = _HIDDEN_KEYS.copy()
     match stat_category:
         case "Default":
-            result_keys += default_keys
+            result_keys += _KEY_CATEGORIES["Default"]
+        case "Offense":
+            result_keys += _KEY_CATEGORIES["Offense"]
+        case "Defense":
+            result_keys += _KEY_CATEGORIES["Defense"]
         case "Boons":
             result_keys += BOON_KEYS
         case "Miscellaneous":
-            result_keys += _MISC_KEYS
+            result_keys += _KEY_CATEGORIES["Miscellaneous"]
+        case "Unlabeled":
+            result_keys += unlabeled_keys
 
     return df[result_keys]
 

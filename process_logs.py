@@ -83,12 +83,12 @@ BOON_IDS = {
     5684: "MagnetAura",
 }
 _BOON_CATEGORIES_IN = ["groupBuffsActive", "squadBuffsActive", "buffUptimesActive"]
-BOON_CATEGORIES_OUT = ["(groupGeneration/s)", "(squadGeneration/s)", "(uptime%)"]
+BOON_CATEGORIES_OUT = [" (Group Generation/s)", " (Squad Generation/s)", " (Uptime%)"]
 _BOON_SELECTORS = ["generation", "generation", "uptime"]
 
 BOON_KEYS = sorted(
     [id + postfix for postfix in BOON_CATEGORIES_OUT for id in BOON_IDS.values()]
-) + ["Bufffood(uptime%)"]
+) + ["Bufffood (uptime%)"]
 
 # These are keys where i dont see a scenario in which they would
 # contain relevant information that another key would not also contain.
@@ -116,9 +116,15 @@ _DROP_KEYS = [
     "directDamageCount",  # --> totalDmgCount
     "directDmg",  # --> just use dps
     "connectedConditionCount",  # -> litterally no one cares
+    "connectedConditionDamage",  # -> litterally no one cares
     "connectedConditionAbove90HPCount",  # -> ...
+    "connectedConditionAbove90HPDamage",  # -> ...
+    "connectedLifeLeechCount",  # -> litterally no one cares
+    "connectedLifeLeechDamage",  # -> litterally no one cares
     "connectedPowerCount",  # -> totalDmgCount
-    "connectedPowerAbove90HPCount",  # -> maybe someday if i feel like it
+    "connectedPowerDamage",  # -> totalDmg
+    "connectedPowerAbove90HPCount",  # -> ...
+    "connectedPowerAbove90HPDamage",  # -> maybe someday if i feel like it
     "connectedDamageCount",  # -> totalDmgCount
     "connectedDmg",  # --> just use dps
     "connectedDirectDamageCount",  # -> totalDmgCount
@@ -138,6 +144,14 @@ _DIVIDE_BY_TIME_KEYS = [
     "condiCleanse",
     "condiCleanseSelf",
     "boonStrips",
+    "boonStripDownContribution",
+    "boonStripDownContributionTime",
+    "stunBreak",
+    "removedStunDuration",
+    "appliedCrowdControl",
+    "appliedCrowdControlDownContribution",
+    "appliedCrowdControlDuration",
+    "appliedCrowdControlDurationDownContribution",
     "swapCount",
     "totalDamageCount",
     "criticalDmg",
@@ -158,42 +172,50 @@ _INTERMEDIATE_KEYS = [
     "timeEnd",
 ]
 
-RENAME_KEYS = {
-    "dps": "Damage(/s)",
-    "condiDps": "ConditionDamage(/s)",
-    "powerDps": "PowerDamage(/s)",
-    "resurrects": "Resurrects(/s)",
-    "resurrectTime": "ResurrectTime(/s)",
-    "condiCleanse": "ConditionCleanse(/s)",
-    "condiCleanseSelf": "ConditionCleanseSelf(/s)",
-    "boonStrips": "BoonStrips(/s)",
+RENAMED_KEYS = {
+    "dps": "Damage (/s)",
+    "downContribution": "Down Contribution Damage (/s)",
+    "condiDps": "Condition Damage (/s)",
+    "powerDps": "Power Damage (/s)",
+    "resurrects": "Resurrects (/s)",
+    "resurrectTime": "Resurrect Time (/s)",
+    "condiCleanse": "Condition Cleanse (/s)",
+    "condiCleanseSelf": "Condition CleanseSelf (/s)",
+    "stunBreak": "Stun Breaks (/s)",
+    "removedStunDuration": "Removed Stun Duration (/s)",
+    "boonStrips": "Boon Strips (/s)",
+    "boonStripDownContribution": "Boon Strip Down Contribution (/s)",
+    "boonStripDownContributionTime": "Boon Strip Down Contribution Time (/s)",
     "wasted": "Wasted",
-    "timeWasted": "timeWasted(/s)",
+    "timeWasted": "Time Wasted (/s)",
     "saved": "Saved",
-    "timeSaved": "timeSaved(/s)",
-    "distToCom": "DistanceToCommander(avg)",
-    "avgActiveBoons": "ActiveBoons(avg)",
-    "avgActiveConditions": "ActiveConditions(avg)",
-    "swapCount": "WeaponSwaps(/s)",
-    "skillCastUptime": "SkillCastUptime(%)",
-    "skillCastUptimeNoAA": "SkillCastUptimeNoAutoAttack(%)",
-    "totalDamageCount": "DamageCount(/s)",
-    "criticalRate": "CriticalRate(avg)",
-    "criticalDmg": "CriticalDamage(/s)",
-    "flankingRate": "FlankingRate(avg)",
-    "glanceRate": "GlanceRate(avg)",
-    "missed": "HitsMissed(/s)",
-    "evaded": "HitsEvaded(/s)",
-    "blocked": "HitsBlocked(/s)",
-    "interrupts": "Interrupts(/s)",
-    "invulned": "HitsInvulned(/s)",
-    "killed": "Kills(/s)",
-    "downed": "Downed(/s)",
-    "downContribution": "DownContributionDamage(/s)",
-    "downedHealing": "HealingToDowned(/s)",
-    "healing": "Healing(/s)",
-    "barrier": "Barrier(/s)",
-    "percentageAlive": "TimeAlive(%)",
+    "timeSaved": "Time Saved (/s)",
+    "distToCom": "Distance To Commander  (avg)",
+    "avgActiveBoons": "Active Boons  (avg)",
+    "avgActiveConditions": "Active Conditions (avg)",
+    "swapCount": "Weapon Swaps (/s)",
+    "skillCastUptime": "Skill Cast Uptime (%)",
+    "skillCastUptimeNoAA": "Skill Cast Uptime - No Autoattack (%)",
+    "totalDamageCount": "Damage Count (/s)",
+    "criticalRate": "Critical Rate (avg)",
+    "criticalDmg": "Critical Damage (/s)",
+    "flankingRate": "Flanking Rate (avg)",
+    "glanceRate": "Glance Rate (avg)",
+    "missed": "Hits Missed (/s)",
+    "evaded": "Hits Evaded (/s)",
+    "blocked": "Hits Blocked (/s)",
+    "invulned": "Hits Invulned (/s)",
+    "appliedCrowdControl": "Crowd Control (/s)",
+    "appliedCrowdControlDownContribution": "Crowd Control Down Contribution (/s)",
+    "appliedCrowdControlDuration": "Crowd Control Duration (/s)",
+    "appliedCrowdControlDurationDownContribution": "Crowd Control Duration Down Contribution (/s)",
+    "interrupts": "Interrupts (/s)",
+    "killed": "Kills (/s)",
+    "downed": "Downed (/s)",
+    "downedHealing": "Healing To Downed (/s)",
+    "healing": "Healing (/s)",
+    "barrier": "Barrier (/s)",
+    "percentageAlive": "Time Alive (%)",
 }
 
 
@@ -227,6 +249,8 @@ def transform_log(log: dict, log_id: str) -> pd.DataFrame:
         | (df["boonStrips"] >= 5)
         | (df["condiCleanse"] >= 10)
     ]
+    # filter out unknown players (pl-*)
+    df = df[~df["account"].str.startswith("Non Squad Player")]
     if df.size == 0:
         # No players actually participated...
         raise FightInvalidException(f"Log {log_id} contains no active players!")
@@ -277,30 +301,33 @@ def transform_log(log: dict, log_id: str) -> pd.DataFrame:
         axis=1,
     )
 
-    # Reinforced armor: 9283
-    # Malnourished: 46587
-    # Diminished: 46668
-    filtered_buffs = [9283, 46587, 46668]
-    df["consumables"] = df["consumables"].map(
-        lambda cell_value: (
-            [e["duration"] for e in cell_value if e["id"] not in filtered_buffs]
-            if hasattr(cell_value, "__len__")
-            else []
+    filtered_buffs = [
+        9283,  # Reinforced armor
+        46587,  # Malnourished
+        46668,  # Diminished
+    ]
+    df["Bufffood (uptime%)"] = 0
+    if "consumables" in df.columns:
+        df["consumables"] = df["consumables"].map(
+            lambda cell_value: (
+                [e["duration"] for e in cell_value if e["id"] not in filtered_buffs]
+                if hasattr(cell_value, "__len__")
+                else []
+            )
         )
-    )
-    df["Bufffood(uptime%)"] = (
-        df["consumables"]
-        .map(lambda e: e[0] if len(e) > 0 else 0)
-        .div(1000)
-        .div(df["activeTimes"])
-        .clip(0, 1)
-        + df["consumables"]
-        .map(lambda e: e[1] if len(e) > 1 else 0)
-        .div(1000)
-        .div(df["activeTimes"])
-        .clip(0, 1)
-    ).div(2)
-    df = df.drop(columns=["consumables"])
+        df["Bufffood (uptime%)"] = (
+            df["consumables"]
+            .map(lambda e: e[0] if len(e) > 0 else 0)
+            .div(1000)
+            .div(df["activeTimes"])
+            .clip(0, 1)
+            + df["consumables"]
+            .map(lambda e: e[1] if len(e) > 1 else 0)
+            .div(1000)
+            .div(df["activeTimes"])
+            .clip(0, 1)
+        ).div(2)
+        df = df.drop(columns=["consumables"])
 
     if "extHealingStats" in df.columns:
         df["downedHealing"] = df["extHealingStats"].apply(
@@ -360,7 +387,7 @@ def transform_log(log: dict, log_id: str) -> pd.DataFrame:
     df = df.drop(columns=_INTERMEDIATE_KEYS, errors="ignore")
 
     # rename for better UX
-    df.rename(columns=RENAME_KEYS, inplace=True)
+    df.rename(columns=RENAMED_KEYS, inplace=True)
     return df
 
 

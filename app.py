@@ -60,14 +60,31 @@ Select which stats you are interested in:
 Default:
   Stats that are usually helpfull.
 
+Offense:
+  Offensive stats (Damage, Boons strips, etc..)
+
+Defense:
+  Defensive stats (Healing, Condition Cleanses, etc..)
+
 Boons:
   Boon generation.
 
 Miscellaneous:
   Most values reported by ArcDps are either useless or it is unclear what they
   mean. Select this category if you want to browse through them anyway.
+
+Unlabeled:
+  New datapoints are added to the processed ardps logs from time to time.
+  If I did not have time to classify them and clean them up they will first appear here.
 """
-STAT_CATEGORIES = ["Default", "Boons", "Miscellaneous"]
+STAT_CATEGORIES = [
+    "Default",
+    "Offense",
+    "Defense",
+    "Boons",
+    "Miscellaneous",
+    "Unlabeled",
+]
 stat_category = st.sidebar.selectbox(
     "Stat selection:", options=STAT_CATEGORIES, help=stat_category_help
 )
@@ -77,7 +94,7 @@ if not userToken:
     st.stop()
 
 df = fetch_data(userToken, stat_category)  # type: ignore
-stat_selector = ""
+stat_selector: str = ""
 if stat_category == "Boons":
     boon = st.sidebar.selectbox(
         "Boon:", options=sorted(BOON_IDS.values()), help=stat_category_help
@@ -168,12 +185,20 @@ if st.checkbox("Show averaged data"):
 
 # violoin plot
 fig = go.Figure()
-sorted_keys = mean[stat_selector].sort_values()
+try:
+    # XXX needs a `sorted_by` classification for the `stat_selector`
+    # sorted_keys = mean[stat_selector].sort_values().tail(30)
+    sorted_keys = mean[stat_selector].sort_values()
+except KeyError:
+    st.write("")
+    st.write("Nothing to see here ...")
+    st.stop()
+
 for group in sorted_keys.index:
     marker = {
         "color": groups.get_group(group)["spec_color"].value_counts().idxmax(),
     }
-    if stat_selector in ["TimeAlive(%)", "Bufffood(uptime%)"]:
+    if stat_selector in ["Time Alive (%)", "Bufffood (uptime%)"]:
         fig.add_trace(
             go.Bar(
                 marker=marker,
