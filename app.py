@@ -201,7 +201,15 @@ fig.update_layout(
     title_x=0.5,
     legend_traceorder="reversed",
 )
-st.write(fig)
+st.plotly_chart(
+    fig,
+    config={
+        "toImageButtonOptions": {
+            "format": "png",
+            "filename": f"{stat_selector.split("(")[0].replace(' ', '').lower()}",
+        },
+    },
+)
 
 # rolling average
 rolling_average_help = """
