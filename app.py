@@ -9,6 +9,17 @@ from fetch_logs import _HIDDEN_KEYS, fetch_data
 from process_logs import BOON_CATEGORIES_OUT, BOON_IDS
 
 logging.basicConfig(filename="myapp.log", level=logging.INFO)
+# Inject css to increase the default sidebar size
+st.markdown(
+    """
+   <style>
+   [data-testid="stSidebar"][aria-expanded="true"]{
+       min-width: 375px;
+   }
+   """,
+    unsafe_allow_html=True,
+)
+
 
 # parse userTokens from env
 userTokens = {"Custom": ""}
