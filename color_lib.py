@@ -53,7 +53,7 @@ spec_color_map = {
     "Elementalist": _spec_to_rgba("elementalist", 1.5),
     "Tempest": _spec_to_rgba("elementalist", 2.0),
     "Weaver": _spec_to_rgba("elementalist", 2.5),
-    "Catalyst": _spec_to_rgba("elementalist", 2.0),
+    "Catalyst": _spec_to_rgba("elementalist", 3.0),
     "Evoker": _spec_to_rgba("elementalist", 3.5),
     "Mesmer": _spec_to_rgba("mesmer", 1.5),
     "Chronomancer": _spec_to_rgba("mesmer", 2.0),

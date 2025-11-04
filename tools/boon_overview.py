@@ -34,8 +34,8 @@ def render_boon_overview(groups, group_means, filters):
                 name=str(idx),
                 x=boon_means.columns,  # x needs the boon names (columns)
                 y=row.values,  # numeric values (call or use .values)
-                marker=dict(color=color),
-            )
+                marker=dict(color=color, line_color="black", line_width=0.5),
+            ),
         )
 
     fig.update_layout(
