@@ -224,7 +224,6 @@ def filter_data(df: pd.DataFrame, filters: InputParams):
     ]
 
     result_keys = _HIDDEN_KEYS.copy()
-    print(filters.stat_category)
     match filters.stat_category:
         case "Default":
             result_keys += _KEY_CATEGORIES["Default"]
