@@ -9,6 +9,7 @@ from fetch_logs import _HIDDEN_KEYS, fetch_data
 from process_logs import BOON_CATEGORIES_OUT, BOON_IDS
 
 logging.basicConfig(filename="myapp.log", level=logging.INFO)
+st.set_page_config(layout="wide")
 # Inject css to increase the default sidebar size
 st.markdown(
     """
