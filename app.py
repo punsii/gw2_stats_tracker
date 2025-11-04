@@ -1,12 +1,12 @@
 import logging
 import os
 
-import pandas as pd
-import plotly.graph_objects as go
 import streamlit as st
 
-from fetch_logs import _HIDDEN_KEYS, fetch_data
-from process_logs import BOON_CATEGORIES_OUT, BOON_IDS
+from fetch_logs import fetch_data
+from filter_logs import filter_data, get_inputs
+from tools.boon_overview import render_boon_overview
+from tools.stat_comparison import render_stat_comparison
 
 logging.basicConfig(filename="myapp.log", level=logging.INFO)
 st.set_page_config(layout="wide")
@@ -55,216 +55,28 @@ if userTokenName == "Custom":
 else:
     userToken = userTokens[userTokenName]
 
-stat_category_help = """
-Select which stats you are interested in:
-
-Default:
-  Stats that are usually helpfull.
-
-Offense:
-  Offensive stats (Damage, Boons strips, etc..)
-
-Defense:
-  Defensive stats (Healing, Condition Cleanses, etc..)
-
-Boons:
-  Boon generation.
-
-Miscellaneous:
-  Most values reported by ArcDps are either useless or it is unclear what they
-  mean. Select this category if you want to browse through them anyway.
-
-Unlabeled:
-  New datapoints are added to the processed ardps logs from time to time.
-  If I did not have time to classify them and clean them up they will first appear here.
-"""
-STAT_CATEGORIES = [
-    "Default",
-    "Offense",
-    "Defense",
-    "Boons",
-    "Miscellaneous",
-    "Unlabeled",
+TOOLS = [
+    "Stat comparison",
+    "Boon overview",
 ]
-stat_category = st.sidebar.selectbox(
-    "Stat selection:", options=STAT_CATEGORIES, help=stat_category_help
-)
+tool_selector = st.sidebar.selectbox("Tool selection:", options=TOOLS)
 
 
 if not userToken:
     st.stop()
 
-df = fetch_data(userToken, stat_category)  # type: ignore
-stat_selector: str = ""
-if stat_category == "Boons":
-    boon = st.sidebar.selectbox(
-        "Boon:", options=sorted(BOON_IDS.values()), help=stat_category_help
-    )
-    boon_type = st.sidebar.selectbox(
-        "Boon Type:", options=BOON_CATEGORIES_OUT, help=stat_category_help
-    )
-    stat_selector = boon + boon_type  # type: ignore
-else:
-    key_selection = [key for key in list(df) if key not in _HIDDEN_KEYS]
-    stat_selector = st.sidebar.selectbox(
-        "Select Stats",
-        key_selection,
-        help="Choose the data that you are interested in.",
-    )
+df = fetch_data(userToken)  # type: ignore
+filters = get_inputs(df, tool_selector)
+df = filter_data(df, filters)
+groups = df.groupby(filters.group_by)
+group_means = groups.mean(numeric_only=True)
 
-group_by_selection = st.sidebar.selectbox(
-    "Group by:",
-    ["character name", "character name & profession", "profession", "account name"],
-)
-match group_by_selection:
-    case "profession":
-        group_by = "profession"
-    case "character name":
-        group_by = "name"
-    case "account name":
-        group_by = "account"
-    case _:
-        group_by = "profession+name"
+DEBUG = st.sidebar.checkbox("Show debug data")
+if DEBUG:
+    st.write(f"Filtered absolute data: {df.shape}:", df)
+    st.write(f"Filtered averaged data: {group_means.shape}:", group_means)
 
-account_name_filter = st.sidebar.multiselect(
-    "Filter Account Names:", sorted(df.account.unique())
-)
-character_name_filter = st.sidebar.multiselect(
-    "Filter Character Names:", sorted(df.name.unique())
-)
-profession_filter = st.sidebar.multiselect(
-    "Filter Professions:", sorted(df.profession.unique())
-)
-dates = df["timeStart"].unique()
-format = "%d.%m. %H:%M"
-start_time_min = st.sidebar.select_slider(
-    "First + Last Date:",
-    format_func=lambda t: pd.Timestamp(t).strftime(format),
-    options=dates,
-    value=dates.min(),
-)
-start_time_max = st.sidebar.select_slider(
-    "hidden",
-    label_visibility="collapsed",
-    format_func=lambda t: pd.Timestamp(t).strftime(format),
-    options=dates,
-    value=dates.max(),
-)
-if start_time_min > start_time_max:
-    st.sidebar.error("First Date must be before Last Date")
-    st.stop()
-
-format = "%d.%m.%y %H:%M"
-time_range_string = (
-    "("
-    + pd.Timestamp(start_time_min).strftime(format)
-    + " - "
-    + pd.Timestamp(start_time_max).strftime(format)
-    + ")"
-)
-
-
-# apply filters
-df = df[df["timeStart"].between(start_time_min, start_time_max)]
-if character_name_filter:
-    df = df[df["name"].isin(character_name_filter)]
-if account_name_filter:
-    df = df[df["account"].isin(account_name_filter)]
-if profession_filter:
-    df = df[df["profession"].isin(profession_filter)]
-
-
-if st.checkbox("Show raw data"):
-    f"df (filtered) {df.shape}:", df
-
-
-groups = df.groupby(group_by)
-mean = groups.mean(numeric_only=True)
-if st.checkbox("Show averaged data"):
-    f"df (filtered) {mean.shape}:", mean
-
-
-# violoin plot
-fig = go.Figure()
-try:
-    # XXX needs a `sorted_by` classification for the `stat_selector`
-    # sorted_keys = mean[stat_selector].sort_values().tail(30)
-    sorted_keys = mean[stat_selector].sort_values()
-except KeyError:
-    st.write("")
-    st.write("Nothing to see here ...")
-    st.stop()
-
-for group in sorted_keys.index:
-    marker = {
-        "color": groups.get_group(group)["spec_color"].value_counts().idxmax(),
-    }
-    if stat_selector in ["Time Alive (%)", "Bufffood (uptime%)"]:
-        fig.add_trace(
-            go.Bar(
-                marker=marker,
-                name=group,
-                y=[sorted_keys[group]],
-                x=[group],
-            )
-        )
-    else:
-        fig.add_trace(
-            go.Violin(
-                jitter=1,
-                marker=marker,
-                meanline_visible=True,
-                name=group,
-                pointpos=0,
-                points="all",
-                spanmode="hard",
-                y=groups.get_group(group)[stat_selector],
-            )
-        )
-
-fig.update_layout(
-    title=f"{stat_selector}  {time_range_string}",
-    title_x=0.5,
-    legend_traceorder="reversed",
-)
-st.plotly_chart(
-    fig,
-    config={
-        "toImageButtonOptions": {
-            "format": "png",
-            "filename": f"{stat_selector.split("(")[0].replace(' ', '').lower()}",
-        },
-    },
-)
-
-# rolling average
-rolling_average_help = """
-The plot below shows how the selected metric has changed over time.
-This slider causes the data to be averaged over N fights instead of
-displaying each data point individually. Choose higher values for
-metrics that vary wildly from fight to fight.
-"""
-rolling_average_window = st.slider(
-    "Rolling Avgerage Window Size:", 1, 25, 5, help=rolling_average_help
-)
-df["rolling_average"] = (
-    df.groupby(group_by)[stat_selector]
-    .rolling(rolling_average_window, win_type="triang")
-    .mean()
-    .reset_index(0, drop=True)
-)
-fig = go.Figure()
-for group in sorted_keys.index:
-    marker = {"color": groups.get_group(group)["spec_color"].value_counts().idxmax()}
-    fig.add_trace(
-        go.Scatter(
-            marker=marker,
-            mode="markers+lines",
-            name=group,
-            x=groups.get_group(group)["timeStart"],
-            y=groups.get_group(group)["rolling_average"],
-        )
-    )
-fig.update_layout(title=stat_selector, title_x=0.5, legend_traceorder="reversed")
-fig.layout = {"xaxis": {"type": "category", "categoryorder": "category ascending"}}
-st.write(fig)
+if tool_selector == "Stat comparison":
+    render_stat_comparison(df, groups, group_means, filters)
+elif tool_selector == "Boon overview":
+    render_boon_overview(groups, group_means, filters)

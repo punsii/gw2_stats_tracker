@@ -10,8 +10,7 @@ import streamlit as st
 from requests.adapters import HTTPAdapter, Retry
 from streamlit.runtime.scriptrunner import add_script_run_ctx
 
-from process_logs import (BOON_KEYS, RENAMED_KEYS, FightInvalidException,
-                          filter_log_data, transform_log)
+from process_logs import FightInvalidException, strip_log_data, transform_log
 
 WORKER_COUNT = 4
 # XXX try to find a good balance...
@@ -28,85 +27,6 @@ WORKER_COUNT = 4
 
 BASE_URL = "https://dps.report"
 
-# These keys are needed but should not be selectable
-_HIDDEN_KEYS = [
-    "id",
-    "timeStart",
-    "profession",
-    "name",
-    "profession+name",
-    "spec_color",
-    "account",
-]
-
-_KEY_CATEGORIES = {
-    "Default": [
-        RENAMED_KEYS["dps"],
-        RENAMED_KEYS["downContribution"],
-        RENAMED_KEYS["healing"],
-        RENAMED_KEYS["barrier"],
-        RENAMED_KEYS["boonStrips"],
-        RENAMED_KEYS["boonStripDownContribution"],
-        RENAMED_KEYS["appliedCrowdControl"],
-        RENAMED_KEYS["appliedCrowdControlDownContribution"],
-        RENAMED_KEYS["condiCleanse"],
-        RENAMED_KEYS["avgActiveBoons"],
-        RENAMED_KEYS["avgActiveConditions"],
-        RENAMED_KEYS["distToCom"],
-        RENAMED_KEYS["swapCount"],
-        RENAMED_KEYS["skillCastUptime"],
-        RENAMED_KEYS["percentageAlive"],
-    ],
-    "Offense": [
-        RENAMED_KEYS["dps"],
-        RENAMED_KEYS["downContribution"],
-        RENAMED_KEYS["condiDps"],
-        RENAMED_KEYS["powerDps"],
-        RENAMED_KEYS["criticalDmg"],
-        RENAMED_KEYS["boonStrips"],
-        RENAMED_KEYS["boonStripDownContribution"],
-        RENAMED_KEYS["killed"],
-        RENAMED_KEYS["downed"],
-        RENAMED_KEYS["interrupts"],
-        RENAMED_KEYS["appliedCrowdControl"],
-        RENAMED_KEYS["appliedCrowdControlDownContribution"],
-        RENAMED_KEYS["appliedCrowdControlDuration"],
-        RENAMED_KEYS["appliedCrowdControlDurationDownContribution"],
-        RENAMED_KEYS["missed"],
-        RENAMED_KEYS["criticalRate"],
-        RENAMED_KEYS["glanceRate"],
-        RENAMED_KEYS["flankingRate"],
-    ],
-    "Defense": [
-        RENAMED_KEYS["healing"],
-        RENAMED_KEYS["barrier"],
-        RENAMED_KEYS["downedHealing"],
-        RENAMED_KEYS["resurrects"],
-        RENAMED_KEYS["resurrectTime"],
-        RENAMED_KEYS["condiCleanse"],
-        RENAMED_KEYS["condiCleanseSelf"],
-        RENAMED_KEYS["stunBreak"],
-        RENAMED_KEYS["removedStunDuration"],
-        RENAMED_KEYS["evaded"],
-        RENAMED_KEYS["blocked"],
-        RENAMED_KEYS["invulned"],
-    ],
-    # These are keys that someone might be intetested in
-    # but which just clutter the application most of the time.
-    "Miscellaneous": [
-        RENAMED_KEYS["distToCom"],
-        RENAMED_KEYS["skillCastUptime"],
-        RENAMED_KEYS["skillCastUptimeNoAA"],  # --> 'skillCastUptime' should be enough
-        RENAMED_KEYS["swapCount"],
-        RENAMED_KEYS["totalDamageCount"],  # --> 'dps' should be enough
-        RENAMED_KEYS["removedStunDuration"],
-        # RENAMED_KEYS["boonStripDownContributionTime"],
-        RENAMED_KEYS["appliedCrowdControlDuration"],
-        RENAMED_KEYS["appliedCrowdControlDurationDownContribution"],
-    ],
-    "Unlabeled": [],
-}
-
 
 @st.cache_data(max_entries=500, show_spinner=False)
 def _fetch_log_data(log_id: str, _session: requests.Session):
@@ -117,7 +37,7 @@ def _fetch_log_data(log_id: str, _session: requests.Session):
         logging.exception(f"Could not download log {log_id}.")
         return pd.DataFrame()
     try:
-        return transform_log(filter_log_data(data_response.json()), log_id)
+        return transform_log(strip_log_data(data_response.json()), log_id)
     except FightInvalidException as e:
         logging.warning(e)
         return pd.DataFrame()
@@ -199,39 +119,10 @@ def _fetch_logs(log_list):
 
 
 @st.cache_data(max_entries=6, ttl=310)
-def fetch_data(userToken: str, stat_category: str):
+def fetch_data(userToken: str):
     log_list = _fetch_log_list(userToken)
     # log_list = log_list[:10]  # XXX for testing
-    df = _fetch_logs(log_list)
-
-    # create inputs
-    unlabeled_keys = [
-        key
-        for key in list(df)
-        if key not in _HIDDEN_KEYS
-        and key not in _KEY_CATEGORIES["Default"]
-        and key not in _KEY_CATEGORIES["Offense"]
-        and key not in _KEY_CATEGORIES["Defense"]
-        and key not in BOON_KEYS
-        and key not in _KEY_CATEGORIES["Miscellaneous"]
-    ]
-
-    result_keys = _HIDDEN_KEYS.copy()
-    match stat_category:
-        case "Default":
-            result_keys += _KEY_CATEGORIES["Default"]
-        case "Offense":
-            result_keys += _KEY_CATEGORIES["Offense"]
-        case "Defense":
-            result_keys += _KEY_CATEGORIES["Defense"]
-        case "Boons":
-            result_keys += BOON_KEYS
-        case "Miscellaneous":
-            result_keys += _KEY_CATEGORIES["Miscellaneous"]
-        case "Unlabeled":
-            result_keys += unlabeled_keys
-
-    return df[result_keys]
+    return _fetch_logs(log_list)
 
 
 if __name__ == "__main__":
@@ -251,7 +142,7 @@ if __name__ == "__main__":
         d = data_response.json()
 
         try:
-            transform_log(filter_log_data(d), log_id)
+            transform_log(strip_log_data(d), log_id)
 
         except FightInvalidException as e:
             print(f"{e=} - {type(e)=}")

@@ -391,7 +391,7 @@ def transform_log(log: dict, log_id: str) -> pd.DataFrame:
     return df
 
 
-def filter_log_data(log):
+def strip_log_data(log):
     if "WvW" not in log["fightName"] and "World vs World" not in log["fightName"]:
         raise FightInvalidException(f"Log is not a WvW fight ({log['fightName']=})")
     for key in list(log.keys()):
