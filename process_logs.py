@@ -74,13 +74,8 @@ BOON_IDS = {
     1122: "Stability",
     1187: "Quickness",
     26980: "Resistance",
-    30328: "Alacrity",
+    # 30328: "Alacrity", # non exitent in
     5974: "Superspeed",
-    10332: "ChaosAura",
-    5577: "ShockAura",
-    5579: "FrostAura",
-    5677: "FireAura",
-    5684: "MagnetAura",
 }
 _BOON_CATEGORIES_IN = ["groupBuffsActive", "squadBuffsActive", "buffUptimesActive"]
 BOON_CATEGORIES_OUT = [" (Group Generation/s)", " (Squad Generation/s)", " (Uptime%)"]
@@ -89,6 +84,14 @@ _BOON_SELECTORS = ["generation", "generation", "uptime"]
 BOON_KEYS = sorted(
     [id + postfix for postfix in BOON_CATEGORIES_OUT for id in BOON_IDS.values()]
 ) + ["Bufffood (uptime%)"]
+
+AURA_IDS = {
+    # 10332: "ChaosAura",
+    # 5577: "ShockAura",
+    # 5579: "FrostAura",
+    # 5677: "FireAura",
+    # 5684: "MagnetAura",
+}
 
 # These are keys where i dont see a scenario in which they would
 # contain relevant information that another key would not also contain.
