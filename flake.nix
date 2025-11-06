@@ -13,6 +13,9 @@
 
     let
       system = "x86_64-linux";
+      pkgs = import nixpkgs {
+        inherit system;
+      };
       treefmtEval = treefmt-nix.lib.evalModule pkgs
         {
           # Used to find the project root
@@ -26,9 +29,10 @@
           };
         };
 
-      pkgs = import nixpkgs {
-        inherit system;
-      };
+      src = pkgs.runCommandLocal "gw2-stat-tracker-sources" { } ''
+        cp -vr ${pkgs.lib.cleanSource ./.} $out
+      '';
+
       pythonEnv = pkgs.python3.withPackages (
         ps: with ps; [
           debugpy
@@ -37,17 +41,28 @@
         ]
       );
 
-      streamlitRun = pkgs.writeShellApplication {
+      prodApp = pkgs.writeShellApplication {
+        name = "streamlitRun";
+        runtimeInputs = [ pythonEnv ];
+        text = "${pythonEnv}/bin/python3 -m streamlit run ${src}/app.py";
+      };
+
+      devApp = pkgs.writeShellApplication {
         name = "streamlitRun";
         runtimeInputs = [ pythonEnv ];
         text = "${pythonEnv}/bin/python3 -m streamlit run app.py";
       };
     in
     {
-      apps.${system} = {
-        default = {
+      apps.${system} = rec {
+        default = prod;
+        prod = {
           type = "app";
-          program = "${streamlitRun}/bin/streamlitRun";
+          program = "${prodApp}/bin/streamlitRun";
+        };
+        dev = {
+          type = "app";
+          program = "${devApp}/bin/streamlitRun";
         };
       };
 
@@ -65,6 +80,11 @@
             ruff
           ];
         };
+      };
+
+      nixosModules = rec {
+        gw2-stat-tracker = ./nix/nixosModules/gw2-stat-tracker.nix;
+        default = gw2-stat-tracker;
       };
 
       formatter.${system} = treefmtEval.config.build.wrapper;
