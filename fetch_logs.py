@@ -28,7 +28,7 @@ WORKER_COUNT = 4
 BASE_URL = "https://dps.report"
 
 
-@st.cache_data(max_entries=500, show_spinner=False)
+@st.cache_data(max_entries=500, show_spinner=False, persist=True)
 def _fetch_log_data(log_id: str, _session: requests.Session):
     try:
         data_response = _session.get(f"{BASE_URL}/getJson?id={log_id}")

@@ -201,7 +201,7 @@ def get_inputs(df: pd.DataFrame, tool_selector: str) -> InputParams:
     )
 
 
-@st.cache_data(max_entries=500, show_spinner=False)
+@st.cache_data(max_entries=500, show_spinner=False, persist=True)
 def filter_data(df: pd.DataFrame, filters: InputParams):
     df = df[df["timeStart"].between(filters.start_time_min, filters.start_time_max)]
     if filters.character_name_filter:
